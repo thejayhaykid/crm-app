@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  crm-app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=your-secret-key-change-in-production
+      - DATABASE_URL=file:/app/data/production.db
+    volumes:
+      - crm_data:/app/data
+      - crm_uploads:/app/uploads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  crm_data:
+    driver: local
+  crm_uploads:
+    driver: local
