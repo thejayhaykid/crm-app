@@ -32,9 +32,9 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="flex flex-col h-full bg-white border-r border-gray-200">
-      <div className="p-6 border-b border-gray-200">
-        <h1 className="text-xl font-bold text-gray-900">CRM Pro</h1>
+    <div className="flex flex-col h-full bg-card border-r border-gray-200 dark:border-gray-700">
+      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <h1 className="text-xl font-bold">CRM Pro</h1>
       </div>
       
       <nav className="flex-1 p-4 space-y-2">
@@ -49,8 +49,8 @@ export function Sidebar() {
               className={cn(
                 'flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors',
                 isActive
-                  ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
-                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-primary/10 text-primary border-r-2 border-primary'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               )}
             >
               <Icon className="w-5 h-5 mr-3" />
@@ -60,10 +60,10 @@ export function Sidebar() {
         })}
       </nav>
       
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700">
         <Button
           variant="ghost"
-          className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+          className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
           onClick={() => signOut({ callbackUrl: '/auth/signin' })}
         >
           <LogOut className="w-5 h-5 mr-3" />

@@ -1,19 +1,131 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useTheme } from 'next-themes';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User, Shield, Bell, Globe } from 'lucide-react';
+import { User, Shield, Bell, Globe, Palette, Monitor, Sun, Moon } from 'lucide-react';
+
+interface UserPreferences {
+  theme: 'light' | 'dark' | 'system';
+  timezone: string;
+  preferences: Record<string, unknown>;
+}
 
 export default function SettingsPage() {
+  const { data: session } = useSession();
+  const { theme, setTheme } = useTheme();
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchPreferences();
+  }, []);
+
+  const fetchPreferences = async () => {
+    try {
+      const response = await fetch('/api/user/preferences');
+      if (response.ok) {
+        const data = await response.json();
+        setPreferences(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch preferences:', error);
+    }
+  };
+
+  const updatePreferences = async (updates: Partial<UserPreferences>) => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/user/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+
+      if (response.ok) {
+        const updatedPreferences = await response.json();
+        setPreferences(updatedPreferences);
+        
+        // Update theme immediately
+        if (updates.theme) {
+          setTheme(updates.theme);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to update preferences:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleThemeChange = (newTheme: string) => {
+    updatePreferences({ theme: newTheme as 'light' | 'dark' | 'system' });
+  };
+
+  const handleTimezoneChange = (newTimezone: string) => {
+    updatePreferences({ timezone: newTimezone });
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        <h1 className="text-2xl font-bold">Settings</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          {/* Appearance Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Palette className="w-5 h-5 mr-2" />
+                Appearance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Theme</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button
+                    variant={theme === 'light' ? 'default' : 'outline'}
+                    onClick={() => handleThemeChange('light')}
+                    disabled={loading}
+                    className="flex items-center justify-center space-x-2"
+                  >
+                    <Sun className="w-4 h-4" />
+                    <span>Light</span>
+                  </Button>
+                  <Button
+                    variant={theme === 'dark' ? 'default' : 'outline'}
+                    onClick={() => handleThemeChange('dark')}
+                    disabled={loading}
+                    className="flex items-center justify-center space-x-2"
+                  >
+                    <Moon className="w-4 h-4" />
+                    <span>Dark</span>
+                  </Button>
+                  <Button
+                    variant={theme === 'system' ? 'default' : 'outline'}
+                    onClick={() => handleThemeChange('system')}
+                    disabled={loading}
+                    className="flex items-center justify-center space-x-2"
+                  >
+                    <Monitor className="w-4 h-4" />
+                    <span>System</span>
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Choose your preferred color scheme. System will match your device&apos;s settings.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Profile Settings */}
           <Card>
             <CardHeader>
@@ -26,28 +138,49 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" placeholder="Your full name" />
+                  <Input 
+                    id="name" 
+                    placeholder="Your full name"
+                    defaultValue={session?.user?.name || ''} 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
-                  <Input id="email" type="email" placeholder="your.email@example.com" />
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder="your.email@example.com"
+                    defaultValue={session?.user?.email || ''}
+                    disabled 
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="timezone">Timezone</Label>
-                <Select>
+                <Select 
+                  value={preferences?.timezone || 'UTC'} 
+                  onValueChange={handleTimezoneChange}
+                  disabled={loading}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select timezone" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="utc">UTC</SelectItem>
-                    <SelectItem value="est">Eastern Time</SelectItem>
-                    <SelectItem value="pst">Pacific Time</SelectItem>
-                    <SelectItem value="cet">Central European Time</SelectItem>
+                    <SelectItem value="UTC">UTC - Coordinated Universal Time</SelectItem>
+                    <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                    <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
+                    <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
+                    <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                    <SelectItem value="Europe/London">London (GMT)</SelectItem>
+                    <SelectItem value="Europe/Paris">Central European Time (CET)</SelectItem>
+                    <SelectItem value="Asia/Tokyo">Japan Standard Time (JST)</SelectItem>
+                    <SelectItem value="Australia/Sydney">Australian Eastern Time (AET)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <Button>Save Changes</Button>
+              <Button disabled={loading}>
+                {loading ? 'Saving...' : 'Save Changes'}
+              </Button>
             </CardContent>
           </Card>
 
